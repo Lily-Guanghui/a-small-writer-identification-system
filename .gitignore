@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual env
+venv/
+.env/
+.venv/
+
+# Node / JS
+node_modules/
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Data / big files
+*.zip
+*.tar
+*.gz
+*.7z
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.iso
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
