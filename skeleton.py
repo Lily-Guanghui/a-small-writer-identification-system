@@ -118,9 +118,9 @@ def dictionary(descriptors, n_clusters):
         n_clusters: number of clusters = K
     returns: KxD matrix of K clusters
     """
-    # TODO
-    dummy = np.array([42])
-    return dummy
+    kmeans = MiniBatchKMeans(n_clusters).fit(descriptors)
+    return kmeans.cluster_centers_
+
 def assignments(descriptors, clusters):
     """ 
     compute assignment matrix
@@ -264,12 +264,12 @@ if __name__ == '__main__':
                                          args.labels_train)
     print('#train: {}'.format(len(files_train)))
     if not os.path.exists('mus.pkl.gz'):
-        # TODO
+        descriptors = loadRandomDescriptors(files_train, 500000)
         print('> loaded {} descriptors:'.format(len(descriptors)))
 
         # cluster centers
         print('> compute dictionary')
-        # TODO
+        mus = dictionary(descriptors, n_clusters=100)
         with gzip.open('mus.pkl.gz', 'wb') as fOut:
             cPickle.dump(mus, fOut, -1)
     else:
@@ -300,6 +300,7 @@ if __name__ == '__main__':
     fname = 'enc_train_gmp{}.pkl.gz'.format(gamma) if args.gmp else 'enc_train.pkl.gz'
     if not os.path.exists(fname) or args.overwrite:
         # TODO
+  
         with gzip.open(fname, 'wb') as fOut:
             cPickle.dump(enc_train, fOut, -1)
     else:
