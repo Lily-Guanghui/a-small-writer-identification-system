@@ -129,12 +129,13 @@ def assignments(descriptors, clusters):
         clusters: KxD cluster matrix
     returns: TxK assignment matrix
     """
+    bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
     # compute nearest neighbors
-    # TODO
-
+    matches = bf.knnMatch(descriptors, clusters, k=1)
     # create hard assignment
     assignment = np.zeros( (len(descriptors), len(clusters)) )
-    # TODO
+    for m in matches:
+        assignment[m[0].queryIdx, m[0].trainIdx] = 1
 
     return assignment
 
@@ -163,15 +164,23 @@ def vlad(files, mus, powernorm, gmp=False, gamma=1000):
             # this cluster as nearest neighbor and then compute the 
             # difference to the cluster center than computing the differences
             # first and then select
+            residual = desc[a[:, k] == 1] - mus[k]
+            if not gmp:
+                f_enc[k * D: (k+1) * D] = residual.sum(axis=0)
+            else:
+                # TODO GMP for individual
+                pass
 
-   
         # c) power normalization
         if powernorm:
-            # TODO
+            f_enc = np.sign(f_enc) * np.sqrt(np.abs(f_enc))
 
         # l2 normalization
-        # TODO
-
+        f_enc = f_enc / np.linalg.norm(f_enc)
+       
+        encodings.append(f_enc)   
+    
+    encodings = np.vstack(encodings) #turn from list to 2D array
 
     return encodings
 
@@ -189,19 +198,26 @@ def esvm(encs_test, encs_train, C=1000):
 
 
     # set up labels
-    # TODO
+    y = -np.ones(len(encs_train)+1)
+    y[0] = 1
 
     def loop(i):
         # compute SVM 
         # and make feature transformation
-        # TODO
-        return x
 
+        X = np.concatenate([encs_test[i].reshape(1, -1), encs_train], axis=0)
+        
+        clf = LinearSVC(C=C, class_weight='balanced')
+        clf.fit(X, y)
+        w = clf.coef_
+        x = w / np.linalg.norm(w)
+        
+        return x
     # let's do that in parallel: 
     # if that doesn't work for you, just exchange 'parmap' with 'map'
     # Even better: use DASK arrays instead, then everything should be
     # parallelized
-    new_encs = list(parmap( loop, tqdm(range(len(encs_test)))))
+    new_encs = list(map( loop, tqdm(range(len(encs_test)))))
     new_encs = np.concatenate(new_encs, axis=0)
     # return new encodings
     return new_encs
@@ -209,15 +225,16 @@ def esvm(encs_test, encs_train, C=1000):
 
 def distances(encs):
     """ 
-    compute pairwise distances 
+    compute pairwise distances between every two files
 
     parameters:
         encs:  TxK*D encoding matrix
     returns: TxT distance matrix
     """
+
     # compute cosine distance = 1 - dot product between l2-normalized
     # encodings
-    # TODO
+    dists = 1 - np.dot(encs, encs.T)
     # mask out distance with itself
     np.fill_diagonal(dists, np.finfo(dists.dtype).max)
     return dists
@@ -282,9 +299,9 @@ if __name__ == '__main__':
     files_test, labels_test = getFiles(args.in_test, args.suffix,
                                        args.labels_test)
     print('#test: {}'.format(len(files_test)))
-    fname = 'enc_test_gmp{}.pkl.gz'.format(gamma) if args.gmp else 'enc_test.pkl.gz'
+    fname = 'enc_test_gmp{}.pkl.gz'.format(args.gamma) if args.gmp else 'enc_test.pkl.gz'
     if not os.path.exists(fname) or args.overwrite:
-        # TODO
+        enc_test = vlad(files_test, mus, args.powernorm, args.gmp, args.gamma)
         with gzip.open(fname, 'wb') as fOut:
             cPickle.dump(enc_test, fOut, -1)
     else:
@@ -297,9 +314,9 @@ if __name__ == '__main__':
 
     # d) compute exemplar svms
     print('> compute VLAD for train (for E-SVM)')
-    fname = 'enc_train_gmp{}.pkl.gz'.format(gamma) if args.gmp else 'enc_train.pkl.gz'
+    fname = 'enc_train_gmp{}.pkl.gz'.format(args.gamma) if args.gmp else 'enc_train.pkl.gz'
     if not os.path.exists(fname) or args.overwrite:
-        # TODO
+        enc_train = vlad(files_train, mus, args.powernorm, args.gmp, args.gamma)
   
         with gzip.open(fname, 'wb') as fOut:
             cPickle.dump(enc_train, fOut, -1)
@@ -308,8 +325,7 @@ if __name__ == '__main__':
             enc_train = cPickle.load(f)
 
     print('> esvm computation')
-    # TODO
-
+    enc_test = esvm(enc_test, enc_train, args.C)
     # eval
-    evaluate(enc_test, labels_test)
     print('> evaluate')
+    evaluate(enc_test, labels_test)

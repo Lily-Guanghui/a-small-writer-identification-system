@@ -1,0 +1,12 @@
+python exercise3.py --in_train ./icdar17_local_features/train --in_test ./icdar17_local_features/test --labels_train ./icdar17_local_features/icdar17_labels_train.txt --labels_test ./icdar17_local_features/icdar17_labels_test.txt
+
+#train: 1182
+> compute VLAD for test
+#test: 3600
+> evaluate
+Top-1 accuracy: 0.8097222222222222 - mAP: 0.6211629789420516
+> compute VLAD for train (for E-SVM)
+> esvm computation
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3600/3600 [10:38<00:00,  5.64it/s]
+> evaluate
+Top-1 accuracy: 0.8761111111111111 - mAP: 0.7329016527624271
